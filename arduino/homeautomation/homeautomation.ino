@@ -10,6 +10,7 @@
 #define SP2_SEP ";"
 #define V_STATUS 2
 #define V_TEMP 0
+#define V_TRIPPED 16
 
 // read temp sensors every 60 seconds
 #define TEMP_READ_DELAY 60000 
@@ -55,7 +56,13 @@ int lastButtonState = LOW;   // the previous reading from the input pin
 byte initialValue = 0;
 unsigned long lastTempRead = 0;
 unsigned long buttonMatrix[MCP_SIZE][4];
-  
+
+const byte pir11 = 11;
+const byte pir12 = 12;
+const byte pir13 = 13;
+int pir11Status = 0;    
+int pir12Status = 0;     
+int pir13Status = 0;      
 
 void sendButtonStatus(int buttonId, byte buttonStatus) {
   Serial.print(NODE_ID);
@@ -84,6 +91,10 @@ void setup() {
   
   mcpInput1.begin(0); // default address = 0
   mcpRelay1.begin(1); 
+
+  pinMode(pir11, INPUT);
+  pinMode(pir12, INPUT);
+  pinMode(pir13, INPUT);
   
   for (int i=0; i<MCP_SIZE; ++i) {
     mcpInput1.pinMode(i, INPUT);
@@ -203,6 +214,21 @@ void sendTemperature(int deviceId, float temperature) {
   Serial.print("\n");
 }
 
+void sendPir(int deviceId, int value) {
+  Serial.print(NODE_ID);
+  Serial.print(SP2_SEP);
+  Serial.print(deviceId);
+  Serial.print(SP2_SEP);
+  Serial.print(1); // set command
+  Serial.print(SP2_SEP);
+  Serial.print(0); // ack (normal message)
+  Serial.print(SP2_SEP);
+  Serial.print(V_TRIPPED); 
+  Serial.print(SP2_SEP);
+  Serial.print(value);
+  Serial.print("\n");
+}
+
 void processSerialRequests() {
   if (Serial.available())
   {
@@ -236,6 +262,27 @@ void processTempSensors() {
   }
 }
 
+void processPirSensors() {
+  int pirStatus = digitalRead(pir11);
+  if (pirStatus != pir11Status) {
+    pir11Status = pirStatus;
+    //sendPir(100+pir11, pir11Status);
+  }
+  pirStatus = digitalRead(pir12);
+  if (pirStatus != pir12Status) {
+    pir12Status = pirStatus;
+    sendPir(100+pir12, pir12Status);
+
+    buttonMatrix[13][3] = pir12Status;
+    EEPROM.write(13, (byte)pir12Status);
+    
+  }
+  pirStatus = digitalRead(pir13);
+  if (pirStatus != pir13Status) {
+    pir13Status = pirStatus;
+    //sendPir(100+pir13, pir13Status);
+  }
+}
 
 void loop() {
   for (int i=0; i<MCP_SIZE; ++i) {
@@ -243,5 +290,6 @@ void loop() {
   }
   processSerialRequests();
   processTempSensors();
+  processPirSensors();
   wdt_reset();
 }
