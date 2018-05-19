@@ -31,6 +31,9 @@
 *.out
 *.app
 
-/arduino/homeautomation/.build/
-/arduino/homeautomation/src/
-/arduino/homeautomation/lib/
+arduino/homeautomation/.build/
+arduino/homeautomation/src/
+arduino/homeautomation/lib/
+
+.DS_Store
+._*
