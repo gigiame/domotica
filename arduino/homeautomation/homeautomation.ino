@@ -2,7 +2,8 @@
 #include "Adafruit_MCP23017.h"
 #include "EEPROM.h"
 #include "OneWire.h"
-#include "DallasTemperature.h"
+#include "DallasTemperature.h"  
+#include "ApplicationMonitor.h"
 #include <avr/wdt.h>
 
 // arduino MySensor Serial Protocol 2.x 
@@ -39,6 +40,8 @@ DallasTemperature sensors9(&oneWire9);
 Adafruit_MCP23017 mcpInput1;
 Adafruit_MCP23017 mcpRelay1;
 
+Watchdog::CApplicationMonitor ApplicationMonitor;
+
 /** the current address in the EEPROM (i.e. which byte we're going to write to next) **/
 int eepromBaseAddr = 0;
 
@@ -64,6 +67,10 @@ int pir11Status = 0;
 int pir12Status = 0;     
 int pir13Status = 0;      
 
+// number of iterations completed. 
+int g_nIterations = 0;   
+
+
 void sendButtonStatus(int buttonId, byte buttonStatus) {
   Serial.print(NODE_ID);
   Serial.print(SP2_SEP);
@@ -83,7 +90,8 @@ void setup() {
   
   Serial.begin(9600); 
 
-  wdt_enable(WDTO_8S);
+  ApplicationMonitor.Dump(Serial);
+  ApplicationMonitor.EnableWatchdog(Watchdog::CApplicationMonitor::Timeout_4s);
   
   // Start up the library
   sensors8.begin();
@@ -280,7 +288,7 @@ void processPirSensors() {
   pirStatus = digitalRead(pir13);
   if (pirStatus != pir13Status) {
     pir13Status = pirStatus;
-    //sendPir(100+pir13, pir13Status);
+    sendPir(100+pir13, pir13Status);
   }
 }
 
@@ -291,5 +299,8 @@ void loop() {
   processSerialRequests();
   processTempSensors();
   processPirSensors();
-  wdt_reset();
+
+  ApplicationMonitor.IAmAlive();
+  ApplicationMonitor.SetData(g_nIterations++);
+  
 }
