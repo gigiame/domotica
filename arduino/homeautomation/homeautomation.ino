@@ -3,8 +3,8 @@
 #include "EEPROM.h"
 #include "OneWire.h"
 #include "DallasTemperature.h"  
-#include "ApplicationMonitor.h"
-#include <avr/wdt.h>
+//#include "ApplicationMonitor.h"
+//#include <avr/wdt.h>
 
 // arduino MySensor Serial Protocol 2.x 
 #define NODE_ID 0
@@ -40,10 +40,10 @@ DallasTemperature sensors9(&oneWire9);
 Adafruit_MCP23017 mcpInput1;
 Adafruit_MCP23017 mcpRelay1;
 
-Watchdog::CApplicationMonitor ApplicationMonitor;
+//Watchdog::CApplicationMonitor ApplicationMonitor;
 
 /** the current address in the EEPROM (i.e. which byte we're going to write to next) **/
-int eepromBaseAddr = 0;
+//int eepromBaseAddr = 0;
 
 const int MCP_SIZE = 16;
 
@@ -68,7 +68,7 @@ int pir12Status = 0;
 int pir13Status = 0;      
 
 // number of iterations completed. 
-int g_nIterations = 0;   
+//int g_nIterations = 0;   
 
 
 void sendButtonStatus(int buttonId, byte buttonStatus) {
@@ -90,8 +90,8 @@ void setup() {
   
   Serial.begin(9600); 
 
-  ApplicationMonitor.Dump(Serial);
-  ApplicationMonitor.EnableWatchdog(Watchdog::CApplicationMonitor::Timeout_4s);
+  //ApplicationMonitor.Dump(Serial);
+  //ApplicationMonitor.EnableWatchdog(Watchdog::CApplicationMonitor::Timeout_4s);
   
   // Start up the library
   sensors8.begin();
@@ -112,8 +112,8 @@ void setup() {
     mcpRelay1.pullUp(i, LOW);  
 
     // setting initial state from eeprom   
-    initialValue = EEPROM.read(i);
-    //initialValue = 0;
+    //initialValue = EEPROM.read(i);
+    initialValue = 1;
     mcpRelay1.digitalWrite(i, initialValue);
     buttonMatrix[i][3] = initialValue;
     sendButtonStatus(i, initialValue);
@@ -150,7 +150,7 @@ void processPushButton(int button) {
       if (buttonState == HIGH) {
         ledState = !ledState;
         buttonMatrix[button][3] = ledState;
-        EEPROM.write(button, (byte)ledState);
+        //EEPROM.write(button, (byte)ledState);
         sendButtonStatus(button, (byte)ledState);
 	      //sendDebugMessage();
       }
@@ -249,7 +249,7 @@ void processSerialRequests() {
     String buttonStatusStr = getValue(inputMQTT, ';', 5);
     int buttonStatus = (buttonStatusStr == "ON") ? 1 : 0; 
     buttonMatrix[buttonId][3] = buttonStatus;
-    EEPROM.write(buttonId, (byte)buttonStatus);
+    //EEPROM.write(buttonId, (byte)buttonStatus);
 
     if (buttonId=15) {
 	    sendDebugMessage();
@@ -282,7 +282,7 @@ void processPirSensors() {
     sendPir(100+pir12, pir12Status);
 
     buttonMatrix[13][3] = pir12Status;
-    EEPROM.write(13, (byte)pir12Status);
+    //EEPROM.write(13, (byte)pir12Status);
     
   }
   pirStatus = digitalRead(pir13);
@@ -300,7 +300,7 @@ void loop() {
   processTempSensors();
   processPirSensors();
 
-  ApplicationMonitor.IAmAlive();
-  ApplicationMonitor.SetData(g_nIterations++);
+  //ApplicationMonitor.IAmAlive();
+  //ApplicationMonitor.SetData(g_nIterations++);
   
 }
