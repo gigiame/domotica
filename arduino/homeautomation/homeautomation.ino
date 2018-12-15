@@ -3,8 +3,8 @@
 #include "EEPROM.h"
 #include "OneWire.h"
 #include "DallasTemperature.h"  
-#include "ApplicationMonitor.h"
-#include <avr/wdt.h>
+//#include "ApplicationMonitor.h"
+//#include <avr/wdt.h>
 
 // arduino MySensor Serial Protocol 2.x 
 #define NODE_ID 0
@@ -18,10 +18,12 @@
 
 // Imposta la comunicazione oneWire per comunicare
 // con un dispositivo compatibile
+OneWire oneWire7(7);
 OneWire oneWire8(8);
 OneWire oneWire9(9);
 
 // Passaggio oneWire reference alla Dallas Temperature. 
+DallasTemperature sensors7(&oneWire7);
 DallasTemperature sensors8(&oneWire8);
 DallasTemperature sensors9(&oneWire9);
 
@@ -40,7 +42,7 @@ DallasTemperature sensors9(&oneWire9);
 Adafruit_MCP23017 mcpInput1;
 Adafruit_MCP23017 mcpRelay1;
 
-Watchdog::CApplicationMonitor ApplicationMonitor;
+//Watchdog::CApplicationMonitor ApplicationMonitor;
 
 /** the current address in the EEPROM (i.e. which byte we're going to write to next) **/
 int eepromBaseAddr = 0;
@@ -59,13 +61,14 @@ int lastButtonState = LOW;   // the previous reading from the input pin
 byte initialValue = 0;
 unsigned long lastTempRead = 0;
 unsigned long buttonMatrix[MCP_SIZE][4];
+bool controlLed = false;
 
+const byte pir10 = 10;
 const byte pir11 = 11;
 const byte pir12 = 12;
-const byte pir13 = 13;
-int pir11Status = 0;    
-int pir12Status = 0;     
-int pir13Status = 0;      
+int pir10Status = 0;    
+int pir11Status = 0;     
+int pir12Status = 0;      
 
 // number of iterations completed. 
 int g_nIterations = 0;   
@@ -90,19 +93,23 @@ void setup() {
   
   Serial.begin(9600); 
 
-  ApplicationMonitor.Dump(Serial);
-  ApplicationMonitor.EnableWatchdog(Watchdog::CApplicationMonitor::Timeout_4s);
+  //ApplicationMonitor.Dump(Serial);
+  //ApplicationMonitor.EnableWatchdog(Watchdog::CApplicationMonitor::Timeout_4s);
   
   // Start up the library
+  sensors7.begin();
   sensors8.begin();
   sensors9.begin();
   
   mcpInput1.begin(0); // default address = 0
   mcpRelay1.begin(1); 
 
+  // test led
+  pinMode(13, OUTPUT);  
+
+  pinMode(pir10, INPUT);
   pinMode(pir11, INPUT);
   pinMode(pir12, INPUT);
-  pinMode(pir13, INPUT);
   
   for (int i=0; i<MCP_SIZE; ++i) {
     mcpInput1.pinMode(i, INPUT);
@@ -241,18 +248,20 @@ void processSerialRequests() {
   if (Serial.available())
   {
     String inputMQTT = Serial.readStringUntil('\n');
-    String value1 = getValue(inputMQTT, ';', 0);
-    int buttonId = getValue(inputMQTT, ';', 1).toInt();
-    String value3 = getValue(inputMQTT, ';', 2);
-    String value4 = getValue(inputMQTT, ';', 3);
-    String value5 = getValue(inputMQTT, ';', 4);
-    String buttonStatusStr = getValue(inputMQTT, ';', 5);
-    int buttonStatus = (buttonStatusStr == "ON") ? 1 : 0; 
-    buttonMatrix[buttonId][3] = buttonStatus;
-    EEPROM.write(buttonId, (byte)buttonStatus);
-
-    if (buttonId=15) {
-	    sendDebugMessage();
+    int nodeId = getValue(inputMQTT, ';', 0).toInt();
+    if (nodeId == NODE_ID) {
+      int buttonId = getValue(inputMQTT, ';', 1).toInt();
+      String value3 = getValue(inputMQTT, ';', 2);
+      String value4 = getValue(inputMQTT, ';', 3);
+      String value5 = getValue(inputMQTT, ';', 4);
+      String buttonStatusStr = getValue(inputMQTT, ';', 5);
+      int buttonStatus = (buttonStatusStr == "ON") ? 1 : 0; 
+      buttonMatrix[buttonId][3] = buttonStatus;
+      EEPROM.write(buttonId, (byte)buttonStatus);
+  
+      if (buttonId=15) {
+  	    sendDebugMessage();
+      }
     }
   }
 }
@@ -260,35 +269,41 @@ void processSerialRequests() {
 void processTempSensors() {
   unsigned long sensorReadTime = millis();
   if (sensorReadTime - lastTempRead > TEMP_READ_DELAY) {
+    sensors7.requestTemperatures();
     sensors8.requestTemperatures();
     sensors9.requestTemperatures();
+    float temp7 = sensors7.getTempCByIndex(0);
     float temp8 = sensors8.getTempCByIndex(0);
     float temp9 = sensors9.getTempCByIndex(0);
     sendTemperature(16, temp8);
     sendTemperature(17, temp9);
+    sendTemperature(18, temp7);
     lastTempRead = sensorReadTime;
+
+    controlLed = !controlLed;
+    digitalWrite(13, controlLed);
   }
 }
 
 void processPirSensors() {
-  int pirStatus = digitalRead(pir11);
+  int pirStatus = digitalRead(pir10);
+  if (pirStatus != pir10Status) {
+    pir10Status = pirStatus;
+    sendPir(100+pir10, pir10Status);
+  }
+  pirStatus = digitalRead(pir11);
   if (pirStatus != pir11Status) {
     pir11Status = pirStatus;
-    //sendPir(100+pir11, pir11Status);
+    sendPir(100+pir11, pir11Status);
+
+    //buttonMatrix[13][3] = pir11Status;
+    //EEPROM.write(13, (byte)pir11Status);
+    
   }
   pirStatus = digitalRead(pir12);
   if (pirStatus != pir12Status) {
     pir12Status = pirStatus;
     sendPir(100+pir12, pir12Status);
-
-    buttonMatrix[13][3] = pir12Status;
-    EEPROM.write(13, (byte)pir12Status);
-    
-  }
-  pirStatus = digitalRead(pir13);
-  if (pirStatus != pir13Status) {
-    pir13Status = pirStatus;
-    sendPir(100+pir13, pir13Status);
   }
 }
 
@@ -298,9 +313,9 @@ void loop() {
   }
   processSerialRequests();
   processTempSensors();
-  processPirSensors();
+  //processPirSensors();
 
-  ApplicationMonitor.IAmAlive();
-  ApplicationMonitor.SetData(g_nIterations++);
+  //ApplicationMonitor.IAmAlive();
+  //ApplicationMonitor.SetData(g_nIterations++);
   
 }
