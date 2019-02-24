@@ -17,12 +17,12 @@
 
 // Imposta la comunicazione oneWire per comunicare
 // con un dispositivo compatibile
-OneWire oneWire10(10);
+//OneWire oneWire10(10);
 //OneWire oneWire9(11);
 //OneWire oneWire10(12);
 
 // Passaggio oneWire reference alla Dallas Temperature. 
-DallasTemperature sensors10(&oneWire10);
+//DallasTemperature sensors10(&oneWire10);
 //DallasTemperature sensors9(&oneWire9);
 //DallasTemperature sensors10(&oneWire10);
 
@@ -52,12 +52,12 @@ void setup() {
   // Start up the library
   //sensors8.begin();
   //sensors9.begin();
-  sensors10.begin();
+  //sensors10.begin();
   
   for (int i=2; i<10; ++i) {
     pinMode(i, OUTPUT);  
-    digitalWrite(i, HIGH); // high = closed
-    sendActuatorStatus(i, LOW); // inverted logic
+    digitalWrite(i, LOW); // low = closed
+    sendActuatorStatus(i, LOW); 
   }
 
 }
@@ -107,12 +107,13 @@ void processSerialRequests() {
       String value4 = getValue(inputMQTT, ';', 3);
       String value5 = getValue(inputMQTT, ';', 4);
       String acutuatorStatusStr = getValue(inputMQTT, ';', 5);
-      int acutuatorStatus = (acutuatorStatusStr == "ON") ? 0 : 1; // inverted logic (0 = open) 
+      int acutuatorStatus = (acutuatorStatusStr == "ON") ? 1 : 0; // 0 = closed 
       digitalWrite(actuatorId, acutuatorStatus);
     }
   }
 }
 
+/*
 void processTempSensors() {
   unsigned long sensorReadTime = millis();
   if (sensorReadTime - lastTempRead > TEMP_READ_DELAY) {
@@ -128,6 +129,7 @@ void processTempSensors() {
     lastTempRead = sensorReadTime;
   }
 }
+*/
 
 void loop() {
   processSerialRequests();

@@ -1,8 +1,11 @@
 #include "Wire.h"
+#include "Adafruit_Sensor.h"
+#include "DHT.h"
 #include "Adafruit_MCP23017.h"
 #include "EEPROM.h"
 #include "OneWire.h"
 #include "DallasTemperature.h"  
+
 //#include "ApplicationMonitor.h"
 //#include <avr/wdt.h>
 
@@ -11,21 +14,28 @@
 #define SP2_SEP ";"
 #define V_STATUS 2
 #define V_TEMP 0
+#define V_HUM 1
 #define V_TRIPPED 16
 
-// read temp sensors every 60 seconds
-#define TEMP_READ_DELAY 60000 
+#define DHTPIN 11     // what pin we're connected to
+#define DHTTYPE DHT22   // DHT 22  (AM2302)
+DHT dht(DHTPIN, DHTTYPE); //// Initialize DHT sensor for normal 16mhz Arduino
+
+// read temp sensors every 300 seconds
+#define TEMP_READ_DELAY 300000 
 
 // Imposta la comunicazione oneWire per comunicare
 // con un dispositivo compatibile
 OneWire oneWire7(7);
 OneWire oneWire8(8);
 OneWire oneWire9(9);
+OneWire oneWire10(10);
 
 // Passaggio oneWire reference alla Dallas Temperature. 
 DallasTemperature sensors7(&oneWire7);
 DallasTemperature sensors8(&oneWire8);
 DallasTemperature sensors9(&oneWire9);
+DallasTemperature sensors10(&oneWire10);
 
 // Basic pin reading and pullup test for the MCP23017 I/O expander
 // public domain!
@@ -73,6 +83,24 @@ int pir12Status = 0;
 // number of iterations completed. 
 int g_nIterations = 0;   
 
+int lightsRelay[] = {
+  0, // lampadario cucina
+  1, // lampadario camera piccola
+  2, // lampadario camera matrimoniale
+  3, // luce spechio bagno grande
+  4, // faretti bagno grande
+  5, // faretti cucina sx
+  6, // faretti cucina dx
+  7, // faretti lavanderia
+  8, // luce pensile cucina
+  9, // applique salotto
+  10,// lampadario flos salotto
+  11,// luce ext cortile
+  12,// luce ext cancello
+  13,// faretti corridoio
+  14,// faretti salotto
+  15,// faretti bagno piccolo 
+};
 
 void sendButtonStatus(int buttonId, byte buttonStatus) {
   Serial.print(NODE_ID);
@@ -101,6 +129,8 @@ void setup() {
   sensors8.begin();
   sensors9.begin();
   
+  dht.begin();
+  
   mcpInput1.begin(0); // default address = 0
   mcpRelay1.begin(1); 
 
@@ -121,12 +151,15 @@ void setup() {
     // setting initial state from eeprom   
     initialValue = EEPROM.read(i);
     //initialValue = 0;
-    mcpRelay1.digitalWrite(i, initialValue);
+    relaySwitch(i, initialValue);
     buttonMatrix[i][3] = initialValue;
     sendButtonStatus(i, initialValue);
   }
 }
 
+void relaySwitch(int i, int value) {
+    mcpRelay1.digitalWrite(lightsRelay[i], !value);
+}
 
 void processPushButton(int button) {
 
@@ -164,7 +197,7 @@ void processPushButton(int button) {
     }
   }
   
-  mcpRelay1.digitalWrite(button, ledState);
+  relaySwitch(button, ledState);
 
   // save the reading. Next time through the loop, it'll be the lastButtonState:
   buttonMatrix[button][1] = reading; 
@@ -229,6 +262,21 @@ void sendTemperature(int deviceId, float temperature) {
   Serial.print("\n");
 }
 
+void sendHumidity(int deviceId, float humidity) {
+  Serial.print(NODE_ID);
+  Serial.print(SP2_SEP);
+  Serial.print(deviceId);
+  Serial.print(SP2_SEP);
+  Serial.print(1); // set command
+  Serial.print(SP2_SEP);
+  Serial.print(0); // ack (normal message)
+  Serial.print(SP2_SEP);
+  Serial.print(V_HUM); 
+  Serial.print(SP2_SEP);
+  Serial.print(humidity);
+  Serial.print("\n");
+}
+
 void sendPir(int deviceId, int value) {
   Serial.print(NODE_ID);
   Serial.print(SP2_SEP);
@@ -272,12 +320,23 @@ void processTempSensors() {
     sensors7.requestTemperatures();
     sensors8.requestTemperatures();
     sensors9.requestTemperatures();
+    sensors10.requestTemperatures();
     float temp7 = sensors7.getTempCByIndex(0);
     float temp8 = sensors8.getTempCByIndex(0);
     float temp9 = sensors9.getTempCByIndex(0);
+    float temp10 = sensors10.getTempCByIndex(0);
+    
+    float hum11 = dht.readHumidity();
+    float temp11 = dht.readTemperature();
+    
     sendTemperature(16, temp8);
     sendTemperature(17, temp9);
     sendTemperature(18, temp7);
+    sendTemperature(19, temp10);
+    sendTemperature(20, temp11);
+    
+    sendHumidity(1, hum11);
+    
     lastTempRead = sensorReadTime;
 
     controlLed = !controlLed;
