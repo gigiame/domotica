@@ -64,6 +64,9 @@ int eepromBaseAddr = 0;
 unsigned long lastDebounceTime = 0;  // the last time the output pin was toggled
 unsigned long debounceDelay = 50;    // the debounce time; increase if the output flickers
 
+// size of the binding array
+const int MCP_SIZE = 16;
+
 // Variables will change:
 //int ledState = LOW;         // the current state of the output pin
 int buttonState;             // the current reading from the input pin
@@ -83,10 +86,6 @@ int pir12Status = 0;
 // number of iterations completed. 
 int g_nIterations = 0;   
 
-
-// size of the binding array
-const int MCP_SIZE = 24;
-
 int lightsRelayBinding[] = {
   0, // lampadario cucina
   1, // lampadario camera piccola
@@ -104,6 +103,8 @@ int lightsRelayBinding[] = {
   13,// faretti corridoio
   14,// faretti salotto  (not working)
   15,// faretti bagno piccolo  (not working)
+};
+/*
   16,// faretti bagno piccolo (new) 
   17,// faretti salotto (new) 
   18,// luce ext cortile (new) 
@@ -113,6 +114,7 @@ int lightsRelayBinding[] = {
   22,// luce stalla
   23 // applique matrimoniale 
 };
+*/
 
 void sendButtonStatus(int buttonId, byte buttonStatus) {
   Serial.print(NODE_ID);
@@ -154,7 +156,7 @@ void setup() {
   pinMode(pir11, INPUT);
   pinMode(pir12, INPUT);
   
-  for (int i=0; i<16; ++i) {
+  for (int i=0; i<MCP_SIZE; ++i) {
     mcpInput1.pinMode(i, INPUT);
     mcpInput1.pullUp(i, HIGH);  
 
