@@ -30,12 +30,14 @@ OneWire oneWire7(7);
 OneWire oneWire8(8);
 OneWire oneWire9(9);
 OneWire oneWire10(10);
+OneWire oneWire11(11);
 
 // Passaggio oneWire reference alla Dallas Temperature. 
 DallasTemperature sensors7(&oneWire7);
 DallasTemperature sensors8(&oneWire8);
 DallasTemperature sensors9(&oneWire9);
 DallasTemperature sensors10(&oneWire10);
+DallasTemperature sensors11(&oneWire11);
 
 // Basic pin reading and pullup test for the MCP23017 I/O expander
 // public domain!
@@ -49,15 +51,13 @@ DallasTemperature sensors10(&oneWire10);
 
 // Input #0 is on pin 21 so connect a button or switch from there to ground
 
-Adafruit_MCP23017 mcpInput1;
-Adafruit_MCP23017 mcpRelay1;
+Adafruit_MCP23017 mcpInput1, mcpRelay1, mcpRelay2;
 
 //Watchdog::CApplicationMonitor ApplicationMonitor;
 
 /** the current address in the EEPROM (i.e. which byte we're going to write to next) **/
 int eepromBaseAddr = 0;
 
-const int MCP_SIZE = 16;
 
 // the following variables are unsigned longs because the time, measured in
 // milliseconds, will quickly become a bigger number than can be stored in an int.
@@ -83,7 +83,11 @@ int pir12Status = 0;
 // number of iterations completed. 
 int g_nIterations = 0;   
 
-int lightsRelay[] = {
+
+// size of the binding array
+const int MCP_SIZE = 24;
+
+int lightsRelayBinding[] = {
   0, // lampadario cucina
   1, // lampadario camera piccola
   2, // lampadario camera matrimoniale
@@ -95,11 +99,19 @@ int lightsRelay[] = {
   8, // luce pensile cucina
   9, // applique salotto
   10,// lampadario flos salotto
-  11,// luce ext cortile
+  11,// luce ext cortile  (not working)
   12,// luce ext cancello
   13,// faretti corridoio
-  14,// faretti salotto
-  15,// faretti bagno piccolo 
+  14,// faretti salotto  (not working)
+  15,// faretti bagno piccolo  (not working)
+  16,// faretti bagno piccolo (new) 
+  17,// faretti salotto (new) 
+  18,// luce ext cortile (new) 
+  19,// luce scala
+  20,// luci specchio bagno piccolo
+  21,// luce ext strada
+  22,// luce stalla
+  23 // applique matrimoniale 
 };
 
 void sendButtonStatus(int buttonId, byte buttonStatus) {
@@ -131,9 +143,10 @@ void setup() {
   
   dht.begin();
   
-  mcpInput1.begin(0); // default address = 0
+  mcpInput1.begin(0); 
   mcpRelay1.begin(1); 
-
+  mcpRelay2.begin(2); 
+  
   // test led
   pinMode(13, OUTPUT);  
 
@@ -141,12 +154,15 @@ void setup() {
   pinMode(pir11, INPUT);
   pinMode(pir12, INPUT);
   
-  for (int i=0; i<MCP_SIZE; ++i) {
+  for (int i=0; i<16; ++i) {
     mcpInput1.pinMode(i, INPUT);
     mcpInput1.pullUp(i, HIGH);  
 
     mcpRelay1.pinMode(i, OUTPUT);
     mcpRelay1.pullUp(i, LOW);  
+
+    mcpRelay2.pinMode(i, OUTPUT);
+    mcpRelay2.pullUp(i, LOW);  
 
     // setting initial state from eeprom   
     initialValue = EEPROM.read(i);
@@ -158,7 +174,7 @@ void setup() {
 }
 
 void relaySwitch(int i, int value) {
-    mcpRelay1.digitalWrite(lightsRelay[i], !value);
+    mcpRelay1.digitalWrite(lightsRelayBinding[i], !value);
 }
 
 void processPushButton(int button) {
@@ -321,21 +337,25 @@ void processTempSensors() {
     sensors8.requestTemperatures();
     sensors9.requestTemperatures();
     sensors10.requestTemperatures();
+    sensors11.requestTemperatures();
+    
     float temp7 = sensors7.getTempCByIndex(0);
     float temp8 = sensors8.getTempCByIndex(0);
     float temp9 = sensors9.getTempCByIndex(0);
     float temp10 = sensors10.getTempCByIndex(0);
+    float temp11 = sensors11.getTempCByIndex(0);
     
-    float hum11 = dht.readHumidity();
-    float temp11 = dht.readTemperature();
+    float hum20 = dht.readHumidity();
+    float temp20 = dht.readTemperature();
     
     sendTemperature(16, temp8);
     sendTemperature(17, temp9);
     sendTemperature(18, temp7);
     sendTemperature(19, temp10);
-    sendTemperature(20, temp11);
+    sendTemperature(20, temp20);
+    sendTemperature(21, temp11);
     
-    sendHumidity(1, hum11);
+    sendHumidity(1, hum20);
     
     lastTempRead = sensorReadTime;
 
