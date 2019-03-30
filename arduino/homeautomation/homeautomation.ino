@@ -17,7 +17,7 @@
 #define V_HUM 1
 #define V_TRIPPED 16
 
-#define DHTPIN 11     // what pin we're connected to
+#define DHTPIN 13     // what pin we're connected to
 #define DHTTYPE DHT22   // DHT 22  (AM2302)
 DHT dht(DHTPIN, DHTTYPE); //// Initialize DHT sensor for normal 16mhz Arduino
 
