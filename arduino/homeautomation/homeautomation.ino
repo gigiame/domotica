@@ -17,9 +17,11 @@
 #define V_HUM 1
 #define V_TRIPPED 16
 
-#define DHTPIN 13     // what pin we're connected to
+#define DHTPIN13 13     // what pin we're connected to
+#define DHTPIN6 6 
 #define DHTTYPE DHT22   // DHT 22  (AM2302)
-DHT dht(DHTPIN, DHTTYPE); //// Initialize DHT sensor for normal 16mhz Arduino
+DHT dht13(DHTPIN13, DHTTYPE); //// Initialize DHT sensor for normal 16mhz Arduino
+DHT dht6(DHTPIN6, DHTTYPE);
 
 // read temp sensors every 300 seconds
 #define TEMP_READ_DELAY 300000 
@@ -143,7 +145,8 @@ void setup() {
   sensors8.begin();
   sensors9.begin();
   
-  dht.begin();
+  dht13.begin();
+  dht6.begin();
   
   mcpInput1.begin(0); 
   mcpRelay1.begin(1); 
@@ -347,8 +350,11 @@ void processTempSensors() {
     float temp10 = sensors10.getTempCByIndex(0);
     float temp11 = sensors11.getTempCByIndex(0);
     
-    float hum20 = dht.readHumidity();
-    float temp20 = dht.readTemperature();
+    float hum20 = dht13.readHumidity();
+    float temp20 = dht13.readTemperature();
+
+    float hum22 = dht6.readHumidity();
+    float temp22 = dht6.readTemperature();
     
     sendTemperature(16, temp8);
     sendTemperature(17, temp9);
@@ -356,8 +362,10 @@ void processTempSensors() {
     sendTemperature(19, temp10);
     sendTemperature(20, temp20);
     sendTemperature(21, temp11);
+    sendTemperature(21, temp22);
     
     sendHumidity(1, hum20);
+    sendHumidity(2, hum22);
     
     lastTempRead = sensorReadTime;
 
