@@ -1,4 +1,4 @@
-#!/bin/bash -e
+#!/bin/bash -ex
 
 binDir=`dirname $0`
 rm -f heatingcontrol/src/._*

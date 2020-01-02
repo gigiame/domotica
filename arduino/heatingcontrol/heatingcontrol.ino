@@ -56,6 +56,13 @@ void setup() {
   
   for (int i=2; i<10; ++i) {
     pinMode(i, OUTPUT);  
+    digitalWrite(i, HIGH); // low = closed
+    sendActuatorStatus(i, HIGH); 
+  }
+
+  delay(2000); 
+  
+  for (int i=2; i<10; ++i) {
     digitalWrite(i, LOW); // low = closed
     sendActuatorStatus(i, LOW); 
   }
