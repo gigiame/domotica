@@ -179,7 +179,11 @@ void setup() {
 }
 
 void relaySwitch(int i, int value) {
-    mcpRelay1.digitalWrite(lightsRelayBinding[i], !value);
+    if (i==0) {
+      mcpRelay1.digitalWrite(lightsRelayBinding[i], HIGH); // always on
+    } else {
+      mcpRelay1.digitalWrite(lightsRelayBinding[i], !value);
+    }
 }
 
 void processPushButton(int button) {
