@@ -34,6 +34,6 @@
 arduino/homeautomation/.build/
 arduino/homeautomation/src/
 arduino/homeautomation/lib/
-
+arduino/heatingcontrol/.build/
 .DS_Store
 ._*

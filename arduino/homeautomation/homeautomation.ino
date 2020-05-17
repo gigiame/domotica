@@ -89,22 +89,22 @@ int pir12Status = 0;
 int g_nIterations = 0;   
 
 int lightsRelayBinding[] = {
-  0, // lampadario cucina
-  1, // lampadario camera piccola
-  2, // lampadario camera matrimoniale
-  3, // luce spechio bagno grande
-  4, // faretti bagno grande
-  5, // faretti cucina sx
-  6, // faretti cucina dx
-  7, // faretti lavanderia
-  8, // luce pensile cucina
-  9, // applique salotto
-  10,// lampadario flos salotto
-  11,// luce ext cortile  (not working)
-  12,// luce ext cancello
-  13,// faretti corridoio
-  14,// faretti salotto  (not working)
-  15,// faretti bagno piccolo  (not working)
+  0, // 
+  1, // 
+  2, // 
+  3, // 
+  4, // 
+  5, // lamp matrimoniale
+  6, // lamp alessia
+  7, // lamp cucina
+  8, // 
+  9, // 
+  10,// lamp flos
+  11,// 
+  12,// 
+  13,// 
+  14,// 
+  15,// faretti bagnetto
 };
 /*
   16,// faretti bagno piccolo (new) 
@@ -135,7 +135,7 @@ void sendButtonStatus(int buttonId, byte buttonStatus) {
 
 void setup() {  
   
-  Serial.begin(9600); 
+  Serial.begin(115200); 
 
   //ApplicationMonitor.Dump(Serial);
   //ApplicationMonitor.EnableWatchdog(Watchdog::CApplicationMonitor::Timeout_4s);
@@ -179,8 +179,8 @@ void setup() {
 }
 
 void relaySwitch(int i, int value) {
-    if (i==0) {
-      mcpRelay1.digitalWrite(lightsRelayBinding[i], HIGH); // always on
+    if (i==7 || i==5 || i==6 || i==10 || i==15) {
+      mcpRelay1.digitalWrite(lightsRelayBinding[i], LOW); // always on
     } else {
       mcpRelay1.digitalWrite(lightsRelayBinding[i], !value);
     }
@@ -331,10 +331,6 @@ void processSerialRequests() {
       int buttonStatus = (buttonStatusStr == "ON") ? 1 : 0; 
       buttonMatrix[buttonId][3] = buttonStatus;
       EEPROM.write(buttonId, (byte)buttonStatus);
-  
-      if (buttonId=15) {
-  	    sendDebugMessage();
-      }
     }
   }
 }
@@ -405,7 +401,7 @@ void loop() {
     processPushButton(i);
   }
   processSerialRequests();
-  processTempSensors();
+  //processTempSensors();
   //processPirSensors();
 
   //ApplicationMonitor.IAmAlive();
